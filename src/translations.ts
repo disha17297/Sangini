@@ -1,8 +1,8 @@
 export const t = {
   en: {
     appName: "Sangini",
-    tagline: "Aapke Saath, Har Kadam",
-    appSubtitle: "Aapke Saath, Har Kadam • Your Caring Senior Companion",
+    tagline: "Har Kadam Aapke Saath",
+    appSubtitle: "Har Kadam Aapke Saath • Your Caring Senior Companion",
     switchLang: "हिंदी में बदलें",
     home: "Home",
     scamShield: "Scam Shield",
@@ -166,8 +166,8 @@ export const t = {
   },
   hi: {
     appName: "संगिनी (Sangini)",
-    tagline: "आपके साथ, हर कदम",
-    appSubtitle: "आपके साथ, हर कदम • वरिष्ठ नागरिकों की स्नेही संगिनी",
+    tagline: "हर कदम आपके साथ",
+    appSubtitle: "हर कदम आपके साथ • वरिष्ठ नागरिकों की स्नेही संगिनी",
     switchLang: "Switch to English",
     home: "मुख्य पृष्ठ",
     scamShield: "सुरक्षा कवच",
