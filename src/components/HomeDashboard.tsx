@@ -19,7 +19,8 @@ import {
   Smile,
   Meh,
   Frown,
-  SunMedium
+  SunMedium,
+  Newspaper,
 } from 'lucide-react';
 import { speakText } from '../utils/speech';
 
@@ -286,6 +287,41 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* 0. Daily News & Updates */}
+          <button
+            id="card-nav-daily-news"
+            type="button"
+            onClick={() => onSelectTab('news')}
+            className={`btn-tactile p-6 rounded-3xl border-2 text-left flex flex-col justify-between gap-4 cursor-pointer transition-all hover:shadow-lg ${
+              isHighContrast
+                ? 'bg-slate-900 border-amber-400 hover:border-amber-300'
+                : 'bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-stone-50 border-amber-200 hover:border-amber-400'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="p-3.5 rounded-2xl bg-amber-600 text-white shadow-sm">
+                <Newspaper className="w-8 h-8" />
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-amber-200 dark:bg-amber-950 text-amber-900 dark:text-amber-200 border border-amber-300">
+                {language === 'hi' ? 'आज का बुलेटिन' : "Today's Digest"}
+              </span>
+            </div>
+
+            <div>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-stone-900 dark:text-slate-100">
+                {tr.news}
+              </h3>
+              <p className="text-base sm:text-lg text-stone-600 dark:text-slate-300 mt-1">
+                {tr.newsDesc}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
+              <span>{language === 'hi' ? 'समाचार पढ़ें या सुनें' : 'Read or Listen to News'}</span>
+              <ArrowRight className="w-5 h-5" />
+            </div>
+          </button>
+
           {/* 1. Scam Shield */}
           <button
             id="card-nav-scam-shield"

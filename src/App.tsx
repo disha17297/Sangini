@@ -20,6 +20,7 @@ import { DocumentExplainer } from './components/DocumentExplainer';
 import { HowToGuides } from './components/HowToGuides';
 import { FamilyConnect } from './components/FamilyConnect';
 import { CompanionChat } from './components/CompanionChat';
+import { DailyNews } from './components/DailyNews';
 
 // Icons
 import {
@@ -33,7 +34,8 @@ import {
   PhoneCall,
   X,
   AlertTriangle,
-  Heart
+  Heart,
+  Newspaper,
 } from 'lucide-react';
 
 export default function App() {
@@ -130,6 +132,15 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'news' && (
+          <DailyNews
+            language={language}
+            contrast={contrast}
+            isSpeaking={isSpeaking}
+            setIsSpeaking={setIsSpeaking}
+          />
+        )}
+
         {activeTab === 'scam-shield' && (
           <ScamShield
             language={language}
@@ -213,6 +224,24 @@ export default function App() {
             <Home className="w-6 h-6" />
             <span className="text-xs sm:text-sm mt-0.5 tracking-tight">
               {tr.home}
+            </span>
+          </button>
+
+          <button
+            id="nav-btn-news"
+            type="button"
+            onClick={() => handleSelectTab('news')}
+            className={`flex flex-col items-center justify-center p-2 rounded-2xl min-w-[56px] cursor-pointer transition-all ${
+              activeTab === 'news'
+                ? isHighContrast
+                  ? 'text-amber-400 font-black scale-105'
+                  : 'text-amber-700 font-black scale-105'
+                : 'text-stone-500 hover:text-stone-800'
+            }`}
+          >
+            <Newspaper className="w-6 h-6" />
+            <span className="text-xs sm:text-sm mt-0.5 tracking-tight">
+              {language === 'hi' ? 'समाचार' : 'News'}
             </span>
           </button>
 

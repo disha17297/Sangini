@@ -6,12 +6,38 @@ export type ThemeContrast = 'standard' | 'high' | 'normal';
 
 export type ActiveTab = 
   | 'home'
+  | 'news'
   | 'scam-shield'
   | 'medicines'
   | 'bills'
   | 'how-to'
   | 'family'
   | 'companion';
+
+export type NewsCategory = 'all' | 'important' | 'schemes' | 'health' | 'local' | 'weather';
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  titleHi: string;
+  summary: string;
+  summaryHi: string;
+  fullStory: string;
+  fullStoryHi: string;
+  category: 'important' | 'schemes' | 'health' | 'local' | 'weather';
+  categoryLabel: string;
+  categoryLabelHi: string;
+  isImportantAlert?: boolean;
+  dateLabel: string; // e.g., "Today, Morning", "Today, Afternoon", "Yesterday"
+  dateLabelHi: string;
+  region: string; // e.g., "National", "Delhi NCR", "Mumbai", "Lucknow", "Jaipur", "Bengaluru"
+  regionHi: string;
+  takeaway: string; // 1-line key action or takeaway for senior
+  takeawayHi: string;
+  source: string;
+  sourceHi: string;
+  readTimeMinutes: number;
+}
 
 export interface Medicine {
   id: string;

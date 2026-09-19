@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Language, ActiveTab, ThemeContrast } from '../types';
 import { t } from '../translations';
-import { Home, ArrowLeft, Heart, Sparkles, Shield, Pill, FileText, Compass, Users, Bot } from 'lucide-react';
+import { Home, ArrowLeft, Heart, Sparkles, Shield, Pill, FileText, Compass, Users, Bot, Newspaper } from 'lucide-react';
 
 interface HeaderProps {
   language: Language;
@@ -53,6 +53,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getTabTitle = () => {
     switch (activeTab) {
+      case 'news':
+        return tr.news;
       case 'scam-shield':
         return tr.scamShield;
       case 'medicines':
@@ -72,6 +74,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const getTabIcon = () => {
     switch (activeTab) {
+      case 'news':
+        return <Newspaper className="w-6 h-6 text-amber-600" />;
       case 'scam-shield':
         return <Shield className="w-6 h-6 text-amber-500" />;
       case 'medicines':
