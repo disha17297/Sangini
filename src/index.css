@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Senior Accessibility Text Scales */
+  html.text-normal {
+    font-size: 18px;
+  }
+  html.text-large {
+    font-size: 21px;
+  }
+  html.text-xlarge {
+    font-size: 24px;
+  }
+
+  /* High Visibility Focus States */
+  *:focus-visible {
+    outline: 3px solid #D97706;
+    outline-offset: 3px;
+  }
+}
+
+/* Senior-friendly tactile button styling */
+.btn-tactile {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+.btn-tactile:active {
+  transform: scale(0.98);
+}
+

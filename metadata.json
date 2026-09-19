@@ -1,0 +1,7 @@
+{
+  "name": "Sangini - Aapke Saath, Har Kadam",
+  "description": "Sangini: Aapke Saath, Har Kadam. An intelligent, accessible, and caring daily companion for seniors in Hindi and English to simplify bills, verify scams, manage medicines, and navigate digital tasks.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
