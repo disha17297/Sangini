@@ -133,7 +133,7 @@ Return STRICT JSON matching this schema:
       contents: { parts },
       systemInstruction,
       fallbackGenerator: () => generateScamFallback(content, isHindi),
-      preferredModels: ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"],
+      preferredModels: ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
     });
 
     scamCache.set(cacheKey, result.data, 2 * 60 * 60 * 1000);
@@ -206,7 +206,7 @@ Return STRICT JSON format:
       systemInstruction,
       fallbackGenerator: () =>
         generateDocumentFallback(content, validated.docType || "bill", isHindi),
-      preferredModels: ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"],
+      preferredModels: ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
     });
 
     docCache.set(cacheKey, result.data, 2 * 60 * 60 * 1000);
@@ -259,7 +259,7 @@ Return STRICT JSON:
       systemInstruction,
       fallbackGenerator: () =>
         generateMedicineFallback(medicineName, instructions, isHindi),
-      preferredModels: ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"],
+      preferredModels: ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
     });
 
     medCache.set(cacheKey, result.data, 24 * 60 * 60 * 1000);
@@ -314,7 +314,7 @@ Persona Guidelines:
       systemInstruction,
       fallbackGenerator: () =>
         generateCompanionChatFallback(validated.messages, isHindi),
-      preferredModels: ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"],
+      preferredModels: ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
     });
 
     res.json(result.data);

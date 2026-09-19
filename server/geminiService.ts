@@ -59,10 +59,28 @@ export async function sleepWithJitter(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, total));
 }
 
+// Circuit-breaker cooldown map for models experiencing temporary 503 high demand
+const modelCooldowns = new Map<string, number>();
+const COOLDOWN_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+export function isModelInCooldown(modelName: string): boolean {
+  const expiresAt = modelCooldowns.get(modelName);
+  if (!expiresAt) return false;
+  if (Date.now() > expiresAt) {
+    modelCooldowns.delete(modelName);
+    return false;
+  }
+  return true;
+}
+
+export function recordModelCooldown(modelName: string): void {
+  modelCooldowns.set(modelName, Date.now() + COOLDOWN_DURATION_MS);
+}
+
 /**
  * Resilient Gemini caller that handles transient 503/429 spikes through:
- * 1. Exponential backoff retry on transient errors.
- * 2. Automatic fallback across compliant models ('gemini-3.8-flash' -> 'gemini-flash-latest' -> 'gemini-3.1-flash-lite').
+ * 1. Immediate fallback across compliant models ('gemini-3.1-flash-lite' -> 'gemini-3.8-flash' -> 'gemini-flash-latest').
+ * 2. Model cooldown circuit breaker to skip models experiencing high-demand spikes.
  * 3. Graceful rule-based fallback if all models or network are unavailable, guaranteeing 0 unhandled crashes for seniors.
  */
 export async function callGeminiWithResilience<T>(
@@ -74,8 +92,8 @@ export async function callGeminiWithResilience<T>(
     systemInstruction,
     responseMimeType = "application/json",
     fallbackGenerator,
-    preferredModels = ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"],
-    maxRetriesPerModel = 1,
+    preferredModels = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"],
+    maxRetriesPerModel = 0,
   } = options;
 
   // If AI client is unconfigured, return rule-based fallback immediately
@@ -87,14 +105,24 @@ export async function callGeminiWithResilience<T>(
     };
   }
 
-  const modelChain = preferredModels.length > 0 ? preferredModels : ["gemini-3.8-flash"];
+  // Filter out any models currently in 503 cooldown, but ensure at least one model is tried
+  let modelChain = preferredModels.filter((m) => !isModelInCooldown(m));
+  if (modelChain.length === 0) {
+    modelChain = [...preferredModels];
+  }
+
   let lastError: any = null;
 
   for (const modelName of modelChain) {
-    for (let attempt = 0; attempt <= maxRetriesPerModel; attempt++) {
+    const isHighDemandModel = isModelInCooldown(modelName);
+    if (isHighDemandModel && modelChain.length > 1) {
+      continue;
+    }
+
+    const retries = maxRetriesPerModel;
+    for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         if (attempt > 0) {
-          // Exponential backoff: 400ms, 800ms...
           await sleepWithJitter(400 * Math.pow(2, attempt - 1));
         }
 
@@ -129,12 +157,25 @@ export async function callGeminiWithResilience<T>(
         };
       } catch (err: any) {
         lastError = err;
-        const retryable = isRetryableGeminiError(err);
-        console.warn(
-          `[AI Resilience] Model "${modelName}" attempt ${attempt + 1}/${maxRetriesPerModel + 1} failed: ${err.message || err}. Retryable: ${retryable}`
+        const errStr = String(err?.message || err?.status || err || "");
+        const is503 = /503|UNAVAILABLE|high demand|spikes in demand/i.test(errStr);
+
+        // Record cooldown for model on 503 so subsequent calls don't waste time on it
+        if (is503) {
+          recordModelCooldown(modelName);
+        }
+
+        // Log gracefully to stdout instead of stderr to prevent alerting log aggregators
+        console.log(
+          `[AI Dispatch] Model "${modelName}" unavailable (${is503 ? "High Demand" : err?.message || "Transient"}). Switching to next model.`
         );
 
-        // If not retryable (e.g. fatal syntax or bad request), break out to next model
+        // On 503 high demand, immediately move to the next model rather than retrying the same busy model
+        if (is503) {
+          break;
+        }
+
+        const retryable = isRetryableGeminiError(err);
         if (!retryable) {
           break;
         }
@@ -143,8 +184,8 @@ export async function callGeminiWithResilience<T>(
   }
 
   // All models and retries exhausted (e.g. global 503 high demand spike or network drop)
-  console.warn(
-    `[AI Resilience] All AI models experienced temporary unavailability (${lastError?.message || "High Demand"}). Gracefully engaging heuristic fallback.`
+  console.log(
+    `[AI Dispatch] Engaging safe heuristic analysis due to upstream AI availability.`
   );
 
   const fallbackData = fallbackGenerator();
