@@ -36,14 +36,52 @@ export function errorHandler(
   }
 
   // Safe fallback for standard errors
-  const isProduction = process.env.NODE_ENV === "production";
-  const statusCode = typeof err.statusCode === "number" ? err.statusCode : 500;
-  const message = err.message && !isProduction ? err.message : "An internal server error occurred. Please try again.";
+  let statusCode = typeof err.statusCode === "number" ? err.statusCode : typeof err.status === "number" ? err.status : 500;
+  let rawMessage = err.message || "";
+  let isHighDemand = false;
 
-  console.error(`[API Error] ${statusCode} - ${err.message || "Unknown error"}`);
+  // Try parsing embedded JSON error if message is stringified JSON
+  try {
+    if (typeof rawMessage === "string" && rawMessage.trim().startsWith("{")) {
+      const parsedErr = JSON.parse(rawMessage);
+      if (parsedErr?.error?.code === 503 || parsedErr?.error?.status === "UNAVAILABLE") {
+        statusCode = 503;
+        isHighDemand = true;
+      } else if (parsedErr?.error?.message) {
+        rawMessage = parsedErr.error.message;
+      }
+    }
+  } catch {
+    // Keep rawMessage
+  }
+
+  if (
+    /503|UNAVAILABLE|high demand|spikes in demand|temporarily unavailable/i.test(rawMessage)
+  ) {
+    statusCode = 503;
+    isHighDemand = true;
+  }
+
+  console.error(`[API Error] ${statusCode} - ${rawMessage || "Unknown error"}`);
+
+  if (isHighDemand) {
+    res.status(503).json({
+      error:
+        "The AI service is temporarily experiencing high demand. Sangini has safe offline heuristics ready. Please try again in a few moments.",
+      code: "AI_SERVICE_HIGH_DEMAND",
+      retryAfter: 5,
+    });
+    return;
+  }
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const userMessage =
+    rawMessage && !isProduction
+      ? rawMessage
+      : "An internal server error occurred. Please try again.";
 
   res.status(statusCode).json({
-    error: message,
+    error: userMessage,
     code: err.code || "INTERNAL_ERROR",
   });
 }

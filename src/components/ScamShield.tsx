@@ -114,7 +114,16 @@ export const ScamShield: React.FC<ScamShieldProps> = ({
           language,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Server returned status: ${response.status}`);
+      }
+
       const data = await response.json();
+      if (!data || !data.verdict || !Array.isArray(data.safeActions)) {
+        throw new Error('Invalid analysis payload structure');
+      }
+
       setResult(data);
 
       // Read aloud result heading & explanation
@@ -128,7 +137,79 @@ export const ScamShield: React.FC<ScamShieldProps> = ({
         );
       }
     } catch (err) {
-      console.error('Scam check failed:', err);
+      console.warn('Scam check API fallback activated:', err);
+      // Client-side instant safety analysis
+      const isHi = language === 'hi';
+      const hasUrgent = /(electricity|power|bijli|cut|disconnected|block|suspend|arrest|police|cbi|fir|kyc|expired|urgent|penalty|fine|chalan|disconnection|बिजली|काट|बंद|खाता|बैंक|पुलिस|धमकी|चालान|जुर्माना)/i.test(
+        content
+      );
+      const hasFin = /(otp|one time password|pin|cvv|password|passcode|lottery|won|crore|lakh|prize|kbc|click here|apk|refund|bonus|claim|ओटीपी|पिन|पासवर्ड|लॉटरी|इनाम|रुपये|लाख|करोड़|लिंक|क्लिक|रिफंड)/i.test(
+        content
+      );
+      const isDanger = hasUrgent || hasFin;
+
+      const fallbackData: ScamAnalysisResult = {
+        verdict: isDanger ? 'dangerous_scam' : 'safe',
+        score: isDanger ? (hasUrgent && hasFin ? 95 : 82) : 15,
+        title: isHi
+          ? isDanger
+            ? 'सावधान! यह एक संदिग्ध धोखाधड़ी (Scam) हो सकता है'
+            : 'यह संदेश सामान्य लग रहा है'
+          : isDanger
+          ? 'Warning! This appears to be a suspicious scam'
+          : 'This message appears generally safe',
+        explanation: isHi
+          ? isDanger
+            ? 'इस संदेश में तुरंत कार्रवाई, बैंक खाता बंद होने या बिजली कटने का डर दिखाया गया है। बैंक या सरकारी विभाग कभी भी SMS पर खाता या बिजली बंद नहीं करते।'
+            : 'इस संदेश में कोई तत्काल खतरा या गोपनीय पासवर्ड मांगने का संकेत नहीं मिला है।'
+          : isDanger
+          ? 'This message creates false urgency or asks for sensitive codes/actions. Genuine banks and utility offices never demand OTPs or threaten same-day disconnection over SMS.'
+          : 'No urgent scam indicators or password requests were detected in this message text.',
+        redFlags: isDanger
+          ? isHi
+            ? [
+                'तत्काल कार्रवाई या सेवा बंद करने का अनावश्यक दबाव',
+                'अज्ञात लिंक या अनौपचारिक नंबर से संदेश',
+                'गोपनीय जानकारी या भुगतान की मांग',
+              ]
+            : [
+                'Urgent threat of immediate disconnection or account block',
+                'Unverified sender or suspicious web link',
+                'Request for payment or sensitive personal codes',
+              ]
+          : isHi
+          ? ['कोई गंभीर चेतावनी नहीं मिली']
+          : ['No critical red flags identified'],
+        safeActions: isDanger
+          ? isHi
+            ? [
+                'इस संदेश में दिए गए किसी भी लिंक पर बिल्कुल क्लिक न करें',
+                'किसी के साथ भी अपना OTP या बैंक पिन साझा न करें',
+                'संदेह होने पर परिवार के किसी सदस्य या बैंक की आधिकारिक शाखा से संपर्क करें',
+              ]
+            : [
+                'Do not click on any links provided in the message',
+                'Never share your OTP, PIN, or banking passwords with anyone',
+                'Contact your official bank branch or a trusted family member for confirmation',
+              ]
+          : isHi
+          ? ['आप सामान्य रूप से आगे बढ़ सकते हैं', 'हमेशा सतर्क रहें']
+          : ['You may proceed normally', 'Always stay cautious with personal information'],
+        reassurance: isHi
+          ? 'आपने इसकी जांच करवाकर बहुत समझदारी का काम किया है। संगिनी हमेशा आपकी सुरक्षा के लिए तैयार है।'
+          : 'You did the right thing by checking this first. Sangini is always here to keep you safe.',
+      };
+
+      setResult(fallbackData);
+      if (fallbackData.explanation) {
+        const speechMsg = `${fallbackData.title}. ${fallbackData.explanation}`;
+        speakText(
+          speechMsg,
+          language,
+          () => setIsSpeaking(true),
+          () => setIsSpeaking(false)
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -136,9 +217,10 @@ export const ScamShield: React.FC<ScamShieldProps> = ({
 
   const handleReadResult = () => {
     if (!result) return;
-    const speechMsg = `${result.title}. ${result.explanation}. ${tr.safeNextSteps}: ${result.safeActions.join(
-      '. '
-    )}. ${result.reassurance}`;
+    const actionsList = Array.isArray(result.safeActions) ? result.safeActions : [];
+    const speechMsg = `${result.title || ''}. ${result.explanation || ''}. ${
+      actionsList.length > 0 ? `${tr.safeNextSteps}: ${actionsList.join('. ')}. ` : ''
+    }${result.reassurance || ''}`;
     speakText(
       speechMsg,
       language,

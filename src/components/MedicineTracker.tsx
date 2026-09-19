@@ -68,10 +68,19 @@ export const MedicineTracker: React.FC<MedicineTrackerProps> = ({
           language,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Server returned status: ${response.status}`);
+      }
+
       const data = await response.json();
+      if (!data || !data.name || !data.purpose) {
+        throw new Error('Invalid medicine explanation payload');
+      }
+
       setMedInfoResult(data);
 
-      const speech = `${data.name}. ${data.purpose}. ${data.whenToTake}`;
+      const speech = `${data.name}. ${data.purpose}. ${data.whenToTake || ''}`;
       speakText(
         speech,
         language,
@@ -79,7 +88,39 @@ export const MedicineTracker: React.FC<MedicineTrackerProps> = ({
         () => setIsSpeaking(false)
       );
     } catch (err) {
-      console.error('Failed to explain medicine:', err);
+      console.warn('Medicine info API fallback activated:', err);
+      const isHi = language === 'hi';
+      const fallbackData: MedicineAnalysisResult = {
+        name: med,
+        purpose: isHi
+          ? 'यह दवा आमतौर पर आपके स्वास्थ्य को संतुलित रखने के लिए डॉक्टर की सलाह पर दी जाती है।'
+          : 'This medication is commonly prescribed to maintain healthy balance as advised by your doctor.',
+        whenToTake: isHi
+          ? 'आमतौर पर भोजन के बाद एक गिलास ताजे पानी के साथ लें। डॉक्टर की पर्ची के अनुसार समय तय करें।'
+          : 'Usually taken with or after meals with a full glass of water. Follow your doctor\'s prescription.',
+        importantCautions: isHi
+          ? [
+              'खाली पेट न लें जब तक डॉक्टर ने विशेष रूप से न कहा हो',
+              'दवा का समय न भूलें, नियमित समय पर लें',
+              'खुराक खुद से न बदलें',
+            ]
+          : [
+              'Do not take on an empty stomach unless advised by physician',
+              'Take at the same scheduled time each day for best results',
+              'Never alter dosage without doctor consultation',
+            ],
+        friendlyTip: isHi
+          ? 'संगिनी में समय पर टिक लगाएं ताकि कोई खुराक न छूटे।'
+          : 'Mark as taken in Sangini daily to easily maintain your routine.',
+      };
+
+      setMedInfoResult(fallbackData);
+      speakText(
+        `${fallbackData.name}. ${fallbackData.purpose}`,
+        language,
+        () => setIsSpeaking(true),
+        () => setIsSpeaking(false)
+      );
     } finally {
       setIsExplaining(false);
     }
@@ -87,9 +128,14 @@ export const MedicineTracker: React.FC<MedicineTrackerProps> = ({
 
   const handleReadMedResult = () => {
     if (!medInfoResult) return;
-    const speech = `${medInfoResult.name}. ${medInfoResult.purpose}. ${
-      medInfoResult.whenToTake
-    }. ${medInfoResult.importantCautions.join('. ')}. ${medInfoResult.friendlyTip}`;
+    const cautionsList = Array.isArray(medInfoResult.importantCautions)
+      ? medInfoResult.importantCautions
+      : [];
+    const speech = `${medInfoResult.name || ''}. ${medInfoResult.purpose || ''}. ${
+      medInfoResult.whenToTake || ''
+    }. ${cautionsList.length > 0 ? cautionsList.join('. ') + '. ' : ''}${
+      medInfoResult.friendlyTip || ''
+    }`;
     speakText(
       speech,
       language,

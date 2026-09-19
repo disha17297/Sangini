@@ -104,15 +104,50 @@ export const ChatMessageSchema = z.object({
   content: z.string().min(1).max(3000),
 });
 
-export const CompanionChatSchema = z.object({
-  messages: z.array(ChatMessageSchema).min(1).max(30),
-  language: z.enum(["en", "hi"]).default("en"),
-  userProfile: z
-    .object({
-      name: z.string().max(100).optional(),
-    })
-    .optional(),
-});
+export const CompanionChatSchema = z
+  .object({
+    messages: z.array(ChatMessageSchema).max(30).optional(),
+    message: z.string().max(3000).optional(),
+    conversationHistory: z.array(z.any()).optional(),
+    language: z.enum(["en", "hi"]).default("en"),
+    userProfile: z
+      .object({
+        name: z.string().max(100).optional(),
+      })
+      .optional(),
+  })
+  .transform((data) => {
+    let normalizedMessages = data.messages ? [...data.messages] : [];
+
+    if (normalizedMessages.length === 0 && data.message) {
+      if (Array.isArray(data.conversationHistory)) {
+        for (const item of data.conversationHistory) {
+          const role = item.role === "assistant" || item.role === "model" ? "model" : "user";
+          const text = item.content || item.parts?.[0]?.text || item.text || "";
+          if (text) {
+            normalizedMessages.push({ role, content: String(text).slice(0, 3000) });
+          }
+        }
+      }
+      normalizedMessages.push({
+        role: "user",
+        content: data.message,
+      });
+    }
+
+    if (normalizedMessages.length === 0) {
+      normalizedMessages.push({
+        role: "user",
+        content: "Hello",
+      });
+    }
+
+    return {
+      messages: normalizedMessages,
+      language: data.language,
+      userProfile: data.userProfile,
+    };
+  });
 
 /**
  * Express middleware applying enterprise HTTP security headers
